@@ -98,3 +98,10 @@ uvicorn==0.34.3
 Werkzeug==3.1.3
 xgboost==3.0.2
 zipp==3.23.0
+langchain-huggingface
+transformers
+huggingface-hub
+langchain-google-genai
+google-generativeai
+langchain-core
+langchain
