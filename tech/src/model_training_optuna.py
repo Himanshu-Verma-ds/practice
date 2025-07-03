@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn 
 from torch.utils.data import Dataset, DataLoader
 import optuna 
-
+from functools import partial
 
 class MyModel(nn.Module):
     def __init__(self, input_features, hidden_neurons, output_features):
@@ -68,6 +68,7 @@ def train_and_validate(model, train_dataloader, val_dataloader, epochs, optimize
     val_loss=0
     with torch.no_grad():
         for batch_features, batch_target in val_dataloader:
+            batch_features, batch_target= batch_features.to(device), batch_target.to(device)
             preds= model(batch_features)
             loss= loss_fn(preds, batch_target.view(-1))
             val_loss += loss.item()
@@ -99,9 +100,10 @@ def evaluate_on_test(model, test_dataloader, device):
 
 test_dataloader_global = None
 X_test_global= None 
-y_test_global= None 
 
-def objective(trial):
+def objective(trial, device):
+    global test_dataloader_global
+    global X_test_global
     
     hidden_neurons= trial.suggest_int('hidden_neurons', 16, 256, step= 16)
     lr= trial.suggest_float('lr', 1e-9, 1e-2, log= True)
@@ -109,6 +111,20 @@ def objective(trial):
     
     # train test split 
     X, y= make_regression(n_samples= 10000, n_features=5, noise= 0.1, random_state= 42)
+    
+    
+    
+    # Creating synthetic dataset
+    n_samples= 10000
+    n_features= 10
+    noise_factor= 0.001
+    
+    X= torch.randn(n_samples, n_features)
+    true_weights= torch.tensor([3.0, -2.5, 0.0, 0.0, 5.0, 0.0, 1.2, 0.0, 0.0, -4.0]) 
+    
+    noise= torch.randn(n_samples)*noise_factor
+    y= torch.matmul(X, )
+    
     df= pd.DataFrame(X, columns= [f'feature_{i}' for i in range(X.shape[1])])
     df['target']= y
     
@@ -127,11 +143,10 @@ def objective(trial):
                    hidden_neurons= hidden_neurons,
                    output_features= 1)
     
+    model= model.to(device)
+    
     if X_test_global is None:
         X_test_global= X_test 
-    
-    if y_test_global is None:
-        y_test_global= y_test
     
     
     epochs= 50
@@ -152,8 +167,9 @@ def objective(trial):
 
 
 if __name__ == '__main__':
+    device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     study= optuna.create_study(direction= 'minimize')
-    study.optimize(objective, n_trials= 30)
+    study.optimize(partial(objective, device= device), n_trials= 30)
     
     print("\nBest Trial:")
     print(f"Validation Loss: {study.best_value:.4f}")
@@ -162,5 +178,11 @@ if __name__ == '__main__':
     # Predicting with the best parameters model
 
     model= MyModel(input_features= X_test_global.shape[1],
-                   )       
+                   hidden_neurons= study.best_params['hidden_neurons'],
+                   output_features= 1)
     
+    avg_test_loss= evaluate_on_test(model= model, 
+                                    test_dataloader= test_dataloader_global, 
+                                    device= device)
+    
+    print('Test loss using the best model: ', avg_test_loss)
