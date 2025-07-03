@@ -62,7 +62,7 @@ X_train, X_test, y_train, y_test= train_test_split(X, y, test_size=0.2, random_s
 print(X_test.shape)
 
 device= torch.device('cuda' if torch.cuda.is_available else 'cpu')
-print(device)
+print('Using device: ',device)
 
 
 
