@@ -1,4 +1,6 @@
 venv
+data
 runs
-langchain/.env
+langchain/src/.env
+LangGraph/src/.env
 *.png
