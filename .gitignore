@@ -4,3 +4,5 @@ runs
 langchain/src/.env
 LangGraph/src/.env
 *.png
+
+tech/src/ml*
